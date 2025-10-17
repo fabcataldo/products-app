@@ -8,7 +8,12 @@ interface Props {
 const ProductImages = ({images}: Props) => {
 
   if(images.length === 0) {
-    <View>
+    <View
+      style={{
+        flex: 1,
+        alignItems: 'center'
+      }}
+    >
       <Image source={ require('../../../assets/images/no-product-image.png') }
       style={{width: 300, height: 300}}/>
     </View>
