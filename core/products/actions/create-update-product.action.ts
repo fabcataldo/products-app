@@ -14,13 +14,49 @@ export const updateCreateProduct = (product: Partial<Product>) => {
     return createProduct(product);
 }
 
+const prepareImages = async(images: string[]): Promise<string[]> => {
+    const fileImages = images.filter(img => img.includes('file'));
+    const currentImages = images.filter(img => !img.includes('file'));
+
+    if(fileImages.length > 0){
+        const uploadPromises = fileImages.map(img => uploadImage(img));
+        const uploadedImages = await Promise.all(uploadPromises);
+
+        // Filter out any undefined values before pushing to currentImages
+        const validUploadedImages = uploadedImages.filter((img): img is string => typeof img === "string");
+        currentImages.push(...validUploadedImages);
+    }
+
+    return currentImages.map(img => img.split('/').pop()!);
+}
+
+const uploadImage = async(image: string): Promise<string> => {
+    const formData = new FormData() as any;
+
+    formData.append('file', {
+        uri: image,
+        type: 'image/jpeg',
+        name: image.split('/').pop()
+    });
+
+    const { data } = await productsApi.post<{ image: string }>('/files/product', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+
+    return data.image;
+}
+
 const updateProduct = async (product: Partial<Product>) => {
     const { id, images = [], user, ...rest } = product;
 
     try {
+        const checkedImages = await prepareImages(images);
+
         const { data } = await productsApi.patch<Product>(`/products/${id}`, {
-            //TODO: images
-            ...rest
+            ...rest,
+            images: checkedImages
         });
 
         return data;
@@ -33,9 +69,11 @@ const createProduct = async (product: Partial<Product>) => {
     const { id, images = [], user, ...rest } = product;
 
     try {
+        const checkedImages = await prepareImages(images);
+
         const { data } = await productsApi.post<Product>(`/products/${id}`, {
-            //TODO: images
-            ...rest
+            ...rest,
+            images: checkedImages
         });
 
         console.log('DATA OK')

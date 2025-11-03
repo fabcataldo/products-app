@@ -1,24 +1,58 @@
+import { useCameraStore } from '@/presentation/store/useCameraStore';
 import { ThemedText } from '@/presentation/theme/components/themed-text';
 import { useThemeColor } from '@/presentation/theme/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
+import * as MediaLibrary from 'expo-media-library';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 export default function CameraScreen() {
-  const [facing, setFacing] = useState<CameraType>('back');
-  const [permission, requestPermission] = useCameraPermissions();
-  const [selectedImage, setSelectedImage] = useState<string>();
+  const { addSelectedImage } = useCameraStore();
 
+
+  const [facing, setFacing] = useState<CameraType>('back');
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [selectedImage, setSelectedImage] = useState<string>();
+  const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions({
+    writeOnly: true
+  });
 
   const cameraRef = useRef<CameraView>(null);
 
-  if (!permission) {
+  const onRequestPermissions = async () => {
+    try {
+      const { status: cameraPermissionStatus } = await requestCameraPermission();
+      if(cameraPermissionStatus !== 'granted') {
+        Alert.alert(
+          'Lo siento',
+          'Necesitamos permiso a la cama para tomar fotos'
+        );
+        return;
+      }
+
+      const { status: mediaPermissionStatus } = await requestMediaPermission();
+      if(mediaPermissionStatus !== 'granted') {
+        Alert.alert(
+          'Lo siento',
+          'Necesitamos permiso a la galería para guardar las imágenes'
+        );
+        return;
+      }
+
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Error', 'Algo salió mal con los permisos');
+    }
+  }
+
+  if (!cameraPermission) {
     return <View />;
   }
 
-  if (!permission.granted) {
+  if (!cameraPermission.granted) {
     return (
       <View style={{
           ...styles.container,
@@ -31,7 +65,7 @@ export default function CameraScreen() {
         </Text>
 
         <TouchableOpacity
-          onPress={requestPermission} 
+          onPress={onRequestPermissions} 
         >
           <ThemedText type='subtitle'>Solicitar permiso</ThemedText>
         </TouchableOpacity>
@@ -62,12 +96,44 @@ export default function CameraScreen() {
     router.dismiss();
   }
 
-  const onPictureAccepted = () => {
-    //TODO: implementar funcion
+  const onPictureAccepted = async () => {
+    
+    console.log('on picture accepted')
+
+    if(!selectedImage) return;
+    await MediaLibrary.createAssetAsync(selectedImage);
+
+    addSelectedImage(selectedImage);
+
+    router.dismiss();
   }
 
   const onRetakePhoto = () => {
     setSelectedImage(undefined);
+  }
+
+  const onPickImages = async() => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      quality: 0.5,
+      aspect: [4, 3], //4 unidades de ancho, y 3 de alto
+      // allowsEditing: true, //deshabilitado, ya que si lo habilito, no puedo
+      //habilitar el atributo de abajo, y viceversa
+      allowsMultipleSelection: true,
+      selectionLimit: 10
+    });
+
+    if(result.canceled) return;
+
+    console.log(result.assets);
+
+    console.log('anduvooo')
+
+    result.assets.forEach(image => {
+      addSelectedImage(image.uri);
+    });
+
+    router.dismiss();
   }
 
   function toggleCameraFacing() {
@@ -101,7 +167,7 @@ export default function CameraScreen() {
         <FlipCameraButton onPress={toggleCameraFacing}/>
 
         {/* TODO: gallerybutton */}
-        <GalleryButton/>
+        <GalleryButton onPress={onPickImages}/>
 
         <ReturnCancelButton onPress={onReturnCancel}/>
 

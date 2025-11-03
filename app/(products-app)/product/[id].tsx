@@ -2,6 +2,7 @@ import type { Size } from '@/core/products/interfaces/product.interface';
 import ProductImages from '@/presentation/products/components/ProductImages';
 import ThemedButtonGroup from '@/presentation/products/components/ThemedButtonGroup';
 import { useProduct } from '@/presentation/products/hooks/useProduct';
+import { useCameraStore } from '@/presentation/store/useCameraStore';
 import MenuIconButton from '@/presentation/theme/components/menu-icon-button';
 import ThemedButton from '@/presentation/theme/components/themed-button';
 import ThemedTextInput from '@/presentation/theme/components/themed-text-input';
@@ -9,14 +10,23 @@ import { ThemedView } from '@/presentation/theme/components/themed-view';
 import { Redirect, router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Formik } from 'formik';
 import { useEffect } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, View } from 'react-native';
 
 const ProductScreen = () => {
+  const { selectedImages, clearImages  } = useCameraStore();
+
   const navigation = useNavigation();
 
   const { id} = useLocalSearchParams();
 
   const { productQuery, productMutation } = useProduct(`${id}`);
+
+  useEffect(() => {
+    return () => {
+      clearImages();
+    }
+  }, [])
+  
 
   useEffect(() => {
     navigation.setOptions({
@@ -57,15 +67,27 @@ const ProductScreen = () => {
   return (
     <Formik
       initialValues={product}
-      onSubmit={productMutation.mutate}
+      onSubmit={(productLike) => productMutation.mutate({
+        ...productLike,
+        images: [...productLike.images, ...selectedImages]
+      })}
     >
       {
         ({ values, handleSubmit, handleChange, setFieldValue }) => (
 
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            <ScrollView>
-              <ProductImages images={values.images}/>
+            <ScrollView
+              refreshControl={
+                <RefreshControl
+                  refreshing={productQuery.isFetching}
+                  onRefresh={async() => {
+                    await productQuery.refetch()
+                  }}
+                />
+              }
+            >
+              <ProductImages images={[...product.images, ...selectedImages]}/>
               <ThemedView style={{marginHorizontal: 10, marginTop: 20}}>
                 <ThemedTextInput
                   placeholder='Título'
