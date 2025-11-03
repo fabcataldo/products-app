@@ -40,8 +40,6 @@ const ProductScreen = () => {
   }, []);
 
   useEffect(() => {
-    console.log('productQuery')
-    console.log(productQuery.data)
     if(productQuery.data) {
       navigation.setOptions({
         title: productQuery.data.title

@@ -27,21 +27,21 @@ const ProductsList = ({ products, loadNextPage }: Props) => {
 
   return (
     <FlatList
-        data={products}
-        numColumns={2}
-        keyExtractor={(item) => item.id}
-        renderItem={({item}) => <ProductCard product={item}/>}
+      data={products}
+      numColumns={2}
+      keyExtractor={(item) => item.id}
+      renderItem={({item}) => <ProductCard product={item}/>}
 
-        onEndReached={loadNextPage}
-        onEndReachedThreshold={0.8}
-        showsVerticalScrollIndicator={false}
-        
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefresing}
-            onRefresh={onPullToRefresh}
-          />
-        }
+      onEndReached={loadNextPage}
+      onEndReachedThreshold={0.8}
+      showsVerticalScrollIndicator={false}
+      
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefresing}
+          onRefresh={onPullToRefresh}
+        />
+      }
     />
   )
 }

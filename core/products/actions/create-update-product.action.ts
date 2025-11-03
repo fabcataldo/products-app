@@ -2,8 +2,6 @@ import { productsApi } from "@/core/api/productsApi";
 import { Product } from "../interfaces/product.interface";
 
 export const updateCreateProduct = (product: Partial<Product>) => {
-    console.log('product')
-    console.log(product)
     product.stock = isNaN(Number(product.stock)) ? 0 : Number(product.stock);
     product.price = isNaN(Number(product.price)) ? 0 : Number(product.price);
 
@@ -75,9 +73,6 @@ const createProduct = async (product: Partial<Product>) => {
             ...rest,
             images: checkedImages
         });
-
-        console.log('DATA OK')
-        console.log(data)
 
         return data;
     } catch (error) {
